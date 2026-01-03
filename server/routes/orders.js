@@ -125,7 +125,7 @@ router.get('/:id/receipt', authenticate, authorize('patient'), (req, res) => {
   const db = getDb();
   
   db.get(
-    `SELECT o.*, u.name as vendor_name, p.name as patient_name, p.email as patient_email
+    `SELECT o.*, u.name as vendor_name, p.name as patient_name, p.user_id as patient_user_id
      FROM orders o
      JOIN users u ON o.vendor_id = u.id
      JOIN users p ON o.patient_id = p.id
@@ -163,7 +163,7 @@ router.get('/:id/receipt/download', authenticate, authorize('patient'), (req, re
   const db = getDb();
   
   db.get(
-    `SELECT o.*, u.name as vendor_name, p.name as patient_name, p.email as patient_email
+    `SELECT o.*, u.name as vendor_name, p.name as patient_name, p.user_id as patient_user_id
      FROM orders o
      JOIN users u ON o.vendor_id = u.id
      JOIN users p ON o.patient_id = p.id

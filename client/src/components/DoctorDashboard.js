@@ -90,7 +90,7 @@ const DoctorDashboard = () => {
               <div key={prescription.id} className="prescription-item">
                 <div className="prescription-header">
                   <span>Patient: <strong>{prescription.patient_name}</strong></span>
-                  <span>Email: {prescription.patient_email}</span>
+                  <span>Patient ID: {prescription.patient_user_id}</span>
                   <span>Confidence: {(prescription.confidence * 100).toFixed(1)}%</span>
                   <span>Date: {new Date(prescription.created_at).toLocaleDateString()}</span>
                 </div>

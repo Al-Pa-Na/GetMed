@@ -87,7 +87,7 @@ router.post('/upload', authenticate, authorize('patient'), upload.single('image'
 router.get('/pending', authenticate, authorize('doctor'), (req, res) => {
   const db = getDb();
   db.all(
-    `SELECT p.*, u.name as patient_name, u.email as patient_email
+    `SELECT p.*, u.name as patient_name, u.user_id as patient_user_id
      FROM prescriptions p
      JOIN users u ON p.patient_id = u.id
      WHERE p.status = 'pending'

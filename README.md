@@ -38,7 +38,9 @@ The backend will run on http://localhost:5000 and frontend on http://localhost:3
 
 ## Default Accounts
 
-- Patient: patient@test.com / password123
-- Doctor: doctor@test.com / password123
-- Vendor: vendor@test.com / password123
+- Patient: PAT001 / password123
+- Doctor: DOC001 / password123
+- Vendor: VEND001 / password123
+
+**Note:** User IDs are automatically generated when you sign up (PAT001, PAT002, etc. for patients, DOC001, DOC002, etc. for doctors, VEND001, VEND002, etc. for vendors).
 

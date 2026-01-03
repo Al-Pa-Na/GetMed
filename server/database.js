@@ -16,15 +16,19 @@ const init = () => {
 
   // Create tables
   db.serialize(() => {
-    // Users table
+    // Users table with new schema
     db.run(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
+      user_id TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       role TEXT NOT NULL,
       name TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
+    )`, (err) => {
+      if (err) {
+        console.error('Error creating users table:', err);
+      }
+    });
 
     // Prescriptions table
     db.run(`CREATE TABLE IF NOT EXISTS prescriptions (
@@ -66,28 +70,75 @@ const init = () => {
       FOREIGN KEY (order_id) REFERENCES orders(id)
     )`);
 
-    // Create default users
-    createDefaultUsers();
+    // Check for old schema and create default users
+    checkSchemaAndCreateUsers();
+  });
+};
+
+const checkSchemaAndCreateUsers = () => {
+  // Check if table has old schema (email column) or new schema (user_id column)
+  db.all("PRAGMA table_info(users)", (err, columns) => {
+    if (err) {
+      console.error('Error checking table schema:', err);
+      createDefaultUsers();
+      return;
+    }
+
+    if (!columns || columns.length === 0) {
+      // Table doesn't exist or is empty, create default users
+      createDefaultUsers();
+      return;
+    }
+
+    const hasEmail = columns.some(col => col.name === 'email');
+    const hasUserId = columns.some(col => col.name === 'user_id');
+
+    if (hasEmail && !hasUserId) {
+      // Old schema detected
+      console.error('\n========================================');
+      console.error('DATABASE SCHEMA MISMATCH DETECTED!');
+      console.error('========================================');
+      console.error('The database has the old schema (with email field).');
+      console.error('Please delete the database file to use the new schema:');
+      console.error(`  Delete: ${dbPath}`);
+      console.error('Then restart the server.');
+      console.error('========================================\n');
+      // Don't create users - they won't work with old schema
+    } else if (hasUserId) {
+      // New schema - create default users
+      createDefaultUsers();
+    } else {
+      // Unknown schema state - try to create users anyway
+      createDefaultUsers();
+    }
   });
 };
 
 const createDefaultUsers = async () => {
   const defaultUsers = [
-    { email: 'patient@test.com', password: 'password123', role: 'patient', name: 'John Patient' },
-    { email: 'doctor@test.com', password: 'password123', role: 'doctor', name: 'Dr. Smith' },
-    { email: 'vendor@test.com', password: 'password123', role: 'vendor', name: 'MediStore' }
+    { user_id: 'PAT001', password: 'password123', role: 'patient', name: 'John Patient' },
+    { user_id: 'DOC001', password: 'password123', role: 'doctor', name: 'Dr. Smith' },
+    { user_id: 'VEND001', password: 'password123', role: 'vendor', name: 'MediStore' }
   ];
 
   for (const user of defaultUsers) {
-    const hashedPassword = await bcrypt.hash(user.password, 10);
-    db.run(
-      `INSERT OR IGNORE INTO users (email, password, role, name) VALUES (?, ?, ?, ?)`,
-      [user.email, hashedPassword, user.role, user.name]
-    );
+    try {
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      db.run(
+        `INSERT OR IGNORE INTO users (user_id, password, role, name) VALUES (?, ?, ?, ?)`,
+        [user.user_id, hashedPassword, user.role, user.name],
+        (err) => {
+          if (err && !err.message.includes('UNIQUE constraint')) {
+            console.error(`Error creating default user ${user.user_id}:`, err);
+          }
+        }
+      );
+    } catch (error) {
+      console.error(`Error hashing password for ${user.user_id}:`, error);
+    }
   }
 };
 
 const getDb = () => db;
 
 module.exports = { init, getDb };
-

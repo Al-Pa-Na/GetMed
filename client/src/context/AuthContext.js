@@ -26,9 +26,9 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (user_id, password) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await axios.post('/api/auth/login', { user_id, password });
       const { token, user } = response.data;
       
       localStorage.setItem('token', token);
@@ -42,6 +42,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signup = async (password, role, name) => {
+    try {
+      const response = await axios.post('/api/auth/register', { password, role, name });
+      const { token, user, message } = response.data;
+      
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(user);
+      
+      return { success: true, user, message };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.error || 'Signup failed' };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -50,9 +66,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
 };
-

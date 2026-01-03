@@ -52,11 +52,12 @@ router.post('/upload', authenticate, authorize('patient'), upload.single('image'
     const imagePath = req.file.path;
     const db = getDb();
 
-    // Extract text using OCR
-    const extractedText = await extractTextFromImage(imagePath);
+    // Extract text using OCR (returns { text, confidence, provider })
+    const ocrResult = await extractTextFromImage(imagePath);
+    console.log(`[Prescriptions] OCR completed | provider: ${ocrResult.provider} | confidence: ${ocrResult.confidence}`);
 
     // Extract prescription data using LLM
-    const medicines = await extractPrescriptionData(extractedText);
+    const medicines = await extractPrescriptionData(ocrResult.text);
     const confidence = calculateConfidence(medicines);
 
     // Store prescription

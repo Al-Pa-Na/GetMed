@@ -1,5 +1,6 @@
 const fs = require('fs').promises;
 const axios = require('axios');
+const { log } = require('console');
 const Tesseract = require('tesseract.js');
 
 const GEMINI_TIMEOUT = 30000; // 30 seconds
@@ -49,6 +50,8 @@ const calculateGeminiConfidence = (text) => {
 const callGeminiAPI = async (base64Image, mediaType, retryCount = 0) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
+    console.log("ApiKey", apiKey);
+
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not set in environment variables');
     }
@@ -58,7 +61,7 @@ const callGeminiAPI = async (base64Image, mediaType, retryCount = 0) => {
 
     try {
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           contents: [
             {
@@ -95,6 +98,7 @@ const callGeminiAPI = async (base64Image, mediaType, retryCount = 0) => {
       const confidence = calculateGeminiConfidence(extractedText);
 
       console.log(`[OCR] Gemini extraction successful | confidence: ${confidence.toFixed(2)} | text_length: ${extractedText.length}`);
+      console.log("Gemini response", extractedText);
 
       return {
         text: extractedText,
@@ -102,6 +106,8 @@ const callGeminiAPI = async (base64Image, mediaType, retryCount = 0) => {
         provider: 'gemini'
       };
     } catch (error) {
+      console.log("there was this error during ocr :", error);
+
       clearTimeout(timeoutId);
       throw error;
     }
@@ -127,7 +133,7 @@ const callTesseractOCR = async (imagePath) => {
   try {
     console.log('[OCR] Falling back to Tesseract OCR');
     const { data: { text, confidence } } = await Tesseract.recognize(imagePath, 'eng', {
-      logger: () => {} // silent logger
+      logger: () => { } // silent logger
     });
 
     const tesseractConfidence = Math.min(confidence / 100, 1); // normalize to 0-1
@@ -148,6 +154,7 @@ const callTesseractOCR = async (imagePath) => {
  * Main OCR function with Gemini primary + Tesseract fallback
  */
 const extractTextFromImage = async (imagePath) => {
+  console.log('Extracting text from image');
   try {
     // Read image file
     const imageBuffer = await fs.readFile(imagePath);
@@ -162,10 +169,13 @@ const extractTextFromImage = async (imagePath) => {
       'gif': 'image/gif',
       'webp': 'image/webp'
     };
+    console.log(mediaTypeMap[extension]);
     const mediaType = mediaTypeMap[extension] || 'image/jpeg';
+    console.log(mediaType);
 
     // Try Gemini first
     try {
+      console.log('Gemini OCR');
       return await callGeminiAPI(base64Image, mediaType);
     } catch (geminiError) {
       console.warn(`[OCR] Gemini primary provider failed, attempting fallback`);
